@@ -2,6 +2,7 @@
 #include <string.h>
 #include "executor.h"
 #include "parser.h"
+#include "shell.h"
 
 int main() {
     char input[MAX_INPUT];
@@ -12,10 +13,15 @@ int main() {
         fflush(stdout);
 
         if (fgets(input, sizeof(input), stdin) == NULL) break;
-        input[strcspn(input, "\n")] = 0; // remove newline
+        input[strcspn(input, "\n")] = 0;
 
         parse_input(input, &cmd);
-        execute_command(&cmd);
+
+        // check built-in command
+        if (execute_builtin(&cmd) == -1) {
+            // Not built-in → execute as external cmd
+            execute_command(&cmd);
+        }
     }
 
     printf("Bye!\n");
