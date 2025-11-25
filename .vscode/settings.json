@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "gmail.h": "c",
+        "token.h": "c",
+        "string.h": "c",
+        "curl.h": "c"
+    }
+}
