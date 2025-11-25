@@ -68,10 +68,4 @@ Contributing
 - Fork the repository and submit pull requests for bug fixes or feature additions.
 - Keep functions small and add tests (or example sessions) demonstrating behavior.
 
-License
-
-No license file is included. Add a `LICENSE` if you want to make the project open-source with a specific license.
-
-Contact
-
 Open an issue or reach out in the repo for questions, improvements, or help running the project.
