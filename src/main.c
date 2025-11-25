@@ -3,6 +3,12 @@
 #include "executor.h"
 #include "parser.h"
 #include "shell.h"
+#include <unistd.h>
+#include <limits.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 int main()
 {
@@ -19,25 +25,45 @@ int main()
            "|  :  | |  | |  |  ||     ||  `  '  ||  _  ||    \\ |    \\ |   [_ |  |  |\n"
            " \\   /  |  | |  |  ||  |  | \\      / |  |  ||  .  \\|  .  \\|     ||  |  |\n"
            "  \\_/  |____||__|__||__|__|  \\_/\\_/  |__|__||__|\\_||__|\\_||_____||__|__|\n");
-    printf("\033[0m"); 
+    printf("\033[0m");
 
     printf("\nRun \033[33mhelp\033[0m to see all custom commands.\n\n");
 
+    char cwd[PATH_MAX]; // buffer for current dir
     while (1)
     {
+        // get current working dir
+        if (getcwd(cwd, sizeof(cwd)) == NULL)
+        {
+            perror("getcwd failed");
+            strcpy(cwd, "?");
+        }
 
-        printf("\033[32m$vinXwarren: \033[0m");
+        printf("\033[36m$vinXwarren:\033[0m\033[33m%s\033[0m: ", cwd);
         fflush(stdout);
+
         if (fgets(input, sizeof(input), stdin) == NULL)
             break;
-        input[strcspn(input, "\n")] = 0;
 
+        input[strcspn(input, "\n")] = 0;
         parse_input(input, &cmd);
 
-        // check custom command
         if (execute_builtin(&cmd) == -1)
         {
-            // Not custom → execute as external cmd
+            /* If the first token of the input is "ls", append --color=auto (if not present),
+               reparse to update cmd, then execute the command once. */
+            char in_copy[MAX_INPUT];
+            strncpy(in_copy, input, sizeof(in_copy));
+            in_copy[sizeof(in_copy) - 1] = '\0';
+            char *tok = strtok(in_copy, " \t");
+            if (tok != NULL && strcmp(tok, "ls") == 0)
+            {
+                if (strstr(input, "--color=auto") == NULL)
+                {
+                    strncat(input, " --color=auto", sizeof(input) - strlen(input) - 1);
+                    parse_input(input, &cmd);
+                }
+            }
             execute_command(&cmd);
         }
     }
