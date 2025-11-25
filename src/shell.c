@@ -20,7 +20,7 @@ typedef struct
 Builtin builtin_cmds[] = {
     {"exit", "Exit the shell", cmd_exit},
     {"greet", "Say hello to arguments", cmd_greet},
-    {"list", "Show list of built-in commands", cmd_listCmd}};
+    {"help", "Show list of built-in commands", cmd_listCmd}};
 
 int num_builtins = sizeof(builtin_cmds) / sizeof(Builtin);
 
@@ -41,7 +41,7 @@ int cmd_greet(int argc, char *argv[])
 
 int cmd_listCmd(int argc, char *argv[])
 {
-    printf("\33[32m\nLIST OF BUILT-IN COMMANDS\33[0m\n");
+    printf("\33[32m\nLIST OF CUSTOM COMMANDS\33[0m\n");
     for (int i = 0; i < num_builtins; i++)
     {
         printf("- %s: %s\n", builtin_cmds[i].name, builtin_cmds[i].desc);
