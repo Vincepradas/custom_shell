@@ -3,11 +3,13 @@
 
 #include "parser.h" 
 
-// Built-in cmds
+// custom cmds
 int cmd_exit(int argc, char *argv[]);
 int cmd_hello(int argc, char *argv[]);
+int cmd_greet(int argc, char *argv[]);
+int cmd_listCmd(int argc, char *argv[]);
 
-// Dispatcher for built-in cmds
+// Dispatcher for custom cmds
 int execute_builtin(Command *cmd);
 
 #endif
