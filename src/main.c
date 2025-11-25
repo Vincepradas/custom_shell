@@ -34,7 +34,7 @@ int main()
 
         parse_input(input, &cmd);
 
-        // check built-in command
+        // check custom command
         if (execute_builtin(&cmd) == -1)
         {
             // Not built-in → execute as external cmd
