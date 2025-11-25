@@ -27,7 +27,7 @@ all: $(OBJ_DIR) $(TARGET)
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ -lcurl -lcjson
 
-# Compile .c -> .o and create subdirectories if needed
+# Compile .c -> .o and create subdirectories
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
