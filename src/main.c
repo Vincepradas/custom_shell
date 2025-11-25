@@ -37,7 +37,7 @@ int main()
         // check custom command
         if (execute_builtin(&cmd) == -1)
         {
-            // Not built-in → execute as external cmd
+            // Not custom → execute as external cmd
             execute_command(&cmd);
         }
     }
