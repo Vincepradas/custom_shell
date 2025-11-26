@@ -30,6 +30,7 @@ Task get_task_by_name(const char *queryName);
 void list_all_tasks();
 void init_next_id();
 int task_name_exists(const char *name);
+int delete_task(const char *name);
 
 /* Utility */
 const char *status_to_string(Status status);

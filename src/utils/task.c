@@ -352,6 +352,71 @@ void list_all_tasks()
     fclose(fptr);
 }
 
+int delete_task(const char *name)
+{
+    if (!name || task_count == 0) {
+        printf(RED "No task found to delete.\n" RESET);
+        return 0;
+    }
+
+    int index = -1;
+    for (int i = 0; i < task_count; i++) {
+        if (strcmp(tasks[i].name, name) == 0) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        printf(RED "Task '%s' not found.\n" RESET, name);
+        return 0;
+    }
+
+    // Confirm deletion
+    char confirm[8];
+    printf(YELLOW "Are you sure you want to delete task '%s'? (yes/no): " RESET, name);
+    if (!fgets(confirm, sizeof(confirm), stdin)) return 0;
+    trim(confirm);
+    if (strcmp(confirm, "yes") != 0) {
+        printf(CYAN "Deletion cancelled.\n" RESET);
+        return 0;
+    }
+
+    // Shift tasks to overwrite deleted task
+    for (int i = index; i < task_count - 1; i++) {
+        tasks[i] = tasks[i + 1];
+    }
+    task_count--;
+
+    // Rewrite the JSON file
+    FILE *fptr = fopen("data/task_data.json", "w");
+    if (!fptr) {
+        printf(RED "Failed to update task_data.json.\n" RESET);
+        return 0;
+    }
+
+    fprintf(fptr, "[\n");
+    for (int i = 0; i < task_count; i++) {
+        fprintf(fptr,
+                "  {\n"
+                "    \"id\": %d,\n"
+                "    \"name\": \"%s\",\n"
+                "    \"description\": \"%s\",\n"
+                "    \"status\": \"%s\",\n"
+                "    \"timestamp\": %ld\n"
+                "  }%s\n",
+                tasks[i].id, tasks[i].name, tasks[i].desc,
+                status_to_string(tasks[i].status),
+                tasks[i].timestamp,
+                i < task_count - 1 ? "," : "");
+    }
+    fprintf(fptr, "]\n");
+    fclose(fptr);
+
+    printf(GREEN "Task '%s' deleted successfully!\n" RESET, name);
+    return 1;
+}
+
 void print_task(const Task *task)
 {
     if (!task)

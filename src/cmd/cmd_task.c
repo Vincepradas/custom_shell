@@ -16,7 +16,8 @@ int cmd_task(int argc, char *argv[])
         printf(YELLOW "[1]" RESET " Create task\n");
         printf(YELLOW "[2]" RESET " Get task\n");
         printf(YELLOW "[3]" RESET " Update status\n");
-        printf(YELLOW "[4]" RESET " Exit task menu\n");
+        printf(YELLOW "[4]" RESET " Delete task\n");
+        printf(YELLOW "[5]" RESET " Exit task menu\n");
         printf(BLUE "===========================================" RESET "\n");
 
         printf("Input: ");
@@ -136,7 +137,27 @@ int cmd_task(int argc, char *argv[])
             break;
         }
 
-        case 4: 
+        case 4: // Delete task
+        {
+            list_all_tasks();
+            char name[MAX_NAME];
+            printf("Enter task name to delete: ");
+            fgets(name, sizeof(name), stdin);
+            name[strcspn(name, "\n")] = 0;
+
+            if (name[0] == '\0')
+            {
+                printf(RED "Task name cannot be empty.\n\n" RESET);
+                break;
+            }
+
+            if (delete_task(name))
+                printf(GREEN "Task deleted successfully.\n\n" RESET);
+            else
+                printf(YELLOW "Task deletion cancelled or not found.\n\n" RESET);
+            break;
+        }
+        case 5: 
             running = 0;
             printf("\033[33mExiting task menu..." RESET "\n\n");
             break;
