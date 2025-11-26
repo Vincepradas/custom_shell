@@ -9,6 +9,7 @@
         "typeinfo": "c",
         "stdlib.h": "c",
         "unistd.h": "c",
-        "shell.h": "c"
+        "shell.h": "c",
+        "colors.h": "c"
     }
 }
