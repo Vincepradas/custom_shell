@@ -3,6 +3,12 @@
         "gmail.h": "c",
         "token.h": "c",
         "string.h": "c",
-        "curl.h": "c"
+        "curl.h": "c",
+        "stdio.h": "c",
+        "task.h": "c",
+        "typeinfo": "c",
+        "stdlib.h": "c",
+        "unistd.h": "c",
+        "shell.h": "c"
     }
 }

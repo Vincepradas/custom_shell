@@ -3,6 +3,7 @@
 #include "executor.h"
 #include "parser.h"
 #include "shell.h"
+#include "utils/colors.h"
 #include <unistd.h>
 #include <limits.h>
 
@@ -14,7 +15,7 @@ int main()
 {
     char input[MAX_INPUT];
     Command cmd;
-    printf("\033[36m\n");
+    printf(CYAN"\n");
     printf("  ╔════════════════════════════════════════════════════════════════╗\n");
     printf("  ║                        VINXWARREN, CUSTOM SHELL                ║\n");
     printf("  ╚════════════════════════════════════════════════════════════════╝\n\n");
@@ -25,9 +26,9 @@ int main()
            "|  :  | |  | |  |  ||     ||  `  '  ||  _  ||    \\ |    \\ |   [_ |  |  |\n"
            " \\   /  |  | |  |  ||  |  | \\      / |  |  ||  .  \\|  .  \\|     ||  |  |\n"
            "  \\_/  |____||__|__||__|__|  \\_/\\_/  |__|__||__|\\_||__|\\_||_____||__|__|\n");
-    printf("\033[0m");
+    printf("" RESET "");
 
-    printf("\nRun \033[33mhelp\033[0m to see all custom commands.\n\n");
+    printf("\nRun" YELLOW " help" RESET " to see all custom commands.\n\n");
 
     char cwd[PATH_MAX]; // buffer for current dir
     while (1)
@@ -39,7 +40,7 @@ int main()
             strcpy(cwd, "?");
         }
 
-        printf("\033[36m$vinXwarren:\033[0m\033[33m%s\033[0m: ", cwd);
+        printf("\033[36m$vinXwarren:" RESET "\033[33m%s\033[0m: ", cwd);
         fflush(stdout);
 
         if (fgets(input, sizeof(input), stdin) == NULL)
