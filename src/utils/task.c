@@ -375,7 +375,13 @@ void mark_task(Task *t, Status s)
     long file_size = ftell(fptr);
     fseek(fptr, 0, SEEK_SET);
 
-    if (file_size <= 0) {
+    if (file_size < 0) {
+        fclose(fptr);
+        return;
+    }
+
+    // Handle empty file case
+    if (file_size == 0) {
         fclose(fptr);
         return;
     }
@@ -411,6 +417,8 @@ void mark_task(Task *t, Status s)
             line_len = line_end - line_start;
         } else {
             line_len = strlen(line_start);
+            if (line_len == 0)
+                break;
             line_end = line_start + line_len - 1; // Point to last char
         }
 
@@ -429,9 +437,9 @@ void mark_task(Task *t, Status s)
         }
 
         if (reading && strstr(line, "\"status\"") && strcmp(current_name, t->name) == 0) {
-            // Write modified status line
+            // Write modified status line (use same format as other JSON writers)
             int written = snprintf(output + output_len, file_size + 256 - output_len, 
-                                   "    \"status\": \"%s\",\n", status_to_string(s));
+                                   "    \"status\" : \"%s\",\n", status_to_string(s));
             output_len += written;
         } else {
             // Copy original line
