@@ -12,12 +12,16 @@ int NEXT_ID = 1;
 void load_tasks()
 {
     FILE *fptr = fopen("data/task_data.json", "r");
-    if (!fptr) return;
+    if (!fptr) {
+        NEXT_ID = 1;
+        return;
+    }
 
     char line[512];
     Task t = {0};
     int reading = 0;
     task_count = 0;
+    int max_id = 0;
 
     while (fgets(line, sizeof(line), fptr))
     {
@@ -62,9 +66,15 @@ void load_tasks()
             trim(t.name);
             if (task_count < MAX_TASKS)
                 tasks[task_count++] = t;
+            // Track max ID for NEXT_ID calculation
+            if (t.id > max_id)
+                max_id = t.id;
         }
     }
     fclose(fptr);
+    
+    // Set NEXT_ID based on loaded tasks
+    NEXT_ID = max_id + 1;
 }
 
 void trim(char *s)
@@ -86,50 +96,31 @@ void trim(char *s)
 
 void init_next_id()
 {
-    FILE *fptr = fopen("data/task_data.json", "r");
-    if (!fptr)
-    {
+    // NEXT_ID is now set by load_tasks(), so this function simply
+    // uses the already-loaded tasks array to find max ID if needed.
+    // This avoids redundant file I/O.
+    if (task_count == 0) {
         NEXT_ID = 1;
         return;
     }
-
-    char line[512];
+    
     int max_id = 0;
-    while (fgets(line, sizeof(line), fptr))
-    {
-        int id;
-        if (sscanf(line, " \"id\" : %d", &id) == 1)
-        {
-            if (id > max_id)
-                max_id = id;
-        }
+    for (int i = 0; i < task_count; i++) {
+        if (tasks[i].id > max_id)
+            max_id = tasks[i].id;
     }
     NEXT_ID = max_id + 1;
-    fclose(fptr);
 }
 
 int task_name_exists(const char *name)
 {
-    FILE *fptr = fopen("data/task_data.json", "r");
-    if (!fptr)
-        return 0;
-
-    char line[512];
-    while (fgets(line, sizeof(line), fptr))
-    {
-        if (strstr(line, "\"name\""))
-        {
-            char existing[MAX_NAME] = {0};
-            sscanf(line, " \"name\" : \"%[^\"]\"", existing);
-            trim(existing);
-            if (strcmp(existing, name) == 0)
-            {
-                fclose(fptr);
-                return 1;
-            }
+    // Use the already-loaded tasks array instead of re-reading the file.
+    // This avoids redundant file I/O.
+    for (int i = 0; i < task_count; i++) {
+        if (strcmp(tasks[i].name, name) == 0) {
+            return 1;
         }
     }
-    fclose(fptr);
     return 0;
 }
 
@@ -207,149 +198,55 @@ Task create_task(const char *name, const char *desc)
 
 Task get_task_by_name(const char *queryName)
 {
-    Task t = {0};
-    FILE *fptr = fopen("data/task_data.json", "r");
-    if (!fptr)
-        return t;
-
-    char line[512];
-    int reading = 0;
-
+    // Use the already-loaded tasks array instead of re-reading the file.
+    // This avoids redundant file I/O.
     char tmpName[MAX_NAME];
     strncpy(tmpName, queryName, MAX_NAME - 1);
+    tmpName[MAX_NAME - 1] = '\0';
     trim(tmpName);
 
-    while (fgets(line, sizeof(line), fptr))
-    {
-        trim(line);
-        if (strcmp(line, "[") == 0 || strcmp(line, "]") == 0 || strcmp(line, ",") == 0)
-            continue;
-
-        if (strstr(line, "{"))
-        {
-            reading = 1;
-            memset(&t, 0, sizeof(Task));
-            continue;
-        }
-        if (!reading)
-            continue;
-
-        if (strstr(line, "\"id\""))
-            sscanf(line, " \"id\" : %d", &t.id);
-        if (strstr(line, "\"name\""))
-            sscanf(line, " \"name\" : \"%[^\"]\"", t.name);
-        if (strstr(line, "\"description\""))
-            sscanf(line, " \"description\" : \"%[^\"]\"", t.desc);
-        if (strstr(line, "\"status\""))
-        {
-            char tmp[32];
-            sscanf(line, " \"status\" : \"%[^\"]\"", tmp);
-            if (strcmp(tmp, "WIP") == 0)
-                t.status = WIP;
-            else if (strcmp(tmp, "DONE") == 0)
-                t.status = DONE;
-            else if (strcmp(tmp, "TODO") == 0)
-                t.status = TODO;
-            else
-                t.status = CANCELLED;
-        }
-        if (strstr(line, "\"timestamp\""))
-            sscanf(line, " \"timestamp\" : %ld", &t.timestamp);
-
-        if (strstr(line, "}"))
-        {
-            reading = 0;
-            trim(t.name);
-            if (strcmp(t.name, tmpName) == 0)
-            {
-                fclose(fptr);
-                return t;
-            }
+    for (int i = 0; i < task_count; i++) {
+        if (strcmp(tasks[i].name, tmpName) == 0) {
+            return tasks[i];
         }
     }
 
-    fclose(fptr);
     return (Task){0};
 }
 
 void list_all_tasks()
 {
-    FILE *fptr = fopen("data/task_data.json", "r");
-    if (!fptr)
+    // Use the already-loaded tasks array instead of re-reading the file.
+    // This avoids redundant file I/O.
+    if (task_count == 0)
     {
-        printf(RED "No task file found.\n" RESET);
+        printf(YELLOW "No tasks saved yet.\n" RESET);
         return;
     }
 
-    char line[512];
-    Task t = {0};
-    int reading = 0;
-    int found = 0;
-
     printf(CYAN "Available tasks:\n" RESET);
 
-    while (fgets(line, sizeof(line), fptr))
+    for (int i = 0; i < task_count; i++)
     {
-        trim(line);
-        if (strcmp(line, "[") == 0 || strcmp(line, "]") == 0 || strcmp(line, ",") == 0)
-            continue;
-
-        if (strstr(line, "{"))
+        switch (tasks[i].status)
         {
-            reading = 1;
-            memset(&t, 0, sizeof(Task));
-            continue;
-        }
-        if (!reading)
-            continue;
-
-        if (strstr(line, "\"name\""))
-            sscanf(line, " \"name\" : \"%[^\"]\"", t.name);
-        if (strstr(line, "\"status\""))
-        {
-            char tmp[32];
-            sscanf(line, " \"status\" : \"%[^\"]\"", tmp);
-            if (strcmp(tmp, "WIP") == 0)
-                t.status = WIP;
-            else if (strcmp(tmp, "DONE") == 0)
-                t.status = DONE;
-            else if (strcmp(tmp, "TODO") == 0)
-                t.status = TODO;
-            else
-                t.status = CANCELLED;
-        }
-
-        if (strstr(line, "}"))
-        {
-            reading = 0;
-            trim(t.name);
-            found = 1;
-
-            switch (t.status)
-            {
-            case DONE:
-                printf(" - " GREEN "%s" RESET "\n", t.name);
-                break;
-            case WIP:
-                printf(" - " YELLOW "%s" RESET "\n", t.name);
-                break;
-            case TODO:
-                printf(" - " RED "%s" RESET "\n", t.name);
-                break;
-            case CANCELLED:
-                printf(" - " MAGENTA "%s" RESET "\n", t.name); // or gray
-                break;
-            default:
-                printf(" - %s\n", t.name);
-                break;
-            }
+        case DONE:
+            printf(" - " GREEN "%s" RESET "\n", tasks[i].name);
+            break;
+        case WIP:
+            printf(" - " YELLOW "%s" RESET "\n", tasks[i].name);
+            break;
+        case TODO:
+            printf(" - " RED "%s" RESET "\n", tasks[i].name);
+            break;
+        case CANCELLED:
+            printf(" - " MAGENTA "%s" RESET "\n", tasks[i].name);
+            break;
+        default:
+            printf(" - %s\n", tasks[i].name);
+            break;
         }
     }
-
-    if (!found)
-        printf(YELLOW "No tasks saved yet.\n" RESET);
-
-    fclose(fptr);
 }
 
 int delete_task(const char *name)
@@ -473,42 +370,96 @@ void mark_task(Task *t, Status s)
     if (!fptr)
         return;
 
-    char lines[1024][512];
-    int count = 0;
-    while (fgets(lines[count], sizeof(lines[count]), fptr))
-        count++;
+    // Get file size to allocate appropriate buffer
+    fseek(fptr, 0, SEEK_END);
+    long file_size = ftell(fptr);
+    fseek(fptr, 0, SEEK_SET);
+
+    if (file_size <= 0) {
+        fclose(fptr);
+        return;
+    }
+
+    // Allocate buffer for entire file content
+    char *file_content = (char *)malloc(file_size + 1);
+    if (!file_content) {
+        fclose(fptr);
+        return;
+    }
+
+    size_t bytes_read = fread(file_content, 1, file_size, fptr);
     fclose(fptr);
+    file_content[bytes_read] = '\0';
+
+    // Create output buffer (same size is sufficient)
+    char *output = (char *)malloc(file_size + 256); // Extra space for potential longer status
+    if (!output) {
+        free(file_content);
+        return;
+    }
+    output[0] = '\0';
+    size_t output_len = 0;
 
     int reading = 0;
     char current_name[MAX_NAME] = {0};
+    char *line_start = file_content;
+    char *line_end;
 
-    for (int i = 0; i < count; i++)
-    {
-        char *line = lines[i];
-        if (strstr(line, "{"))
-        {
+    while ((line_end = strchr(line_start, '\n')) != NULL || *line_start != '\0') {
+        size_t line_len;
+        if (line_end) {
+            line_len = line_end - line_start;
+        } else {
+            line_len = strlen(line_start);
+            line_end = line_start + line_len - 1; // Point to last char
+        }
+
+        // Create temporary null-terminated line for parsing
+        char line[512];
+        size_t copy_len = line_len < sizeof(line) - 1 ? line_len : sizeof(line) - 1;
+        memcpy(line, line_start, copy_len);
+        line[copy_len] = '\0';
+
+        if (strstr(line, "{")) {
             reading = 1;
             current_name[0] = '\0';
         }
-        if (reading && strstr(line, "\"name\""))
-        {
+        if (reading && strstr(line, "\"name\"")) {
             sscanf(line, " \"name\" : \"%[^\"]\"", current_name);
         }
-        if (reading && strstr(line, "\"status\"") && strcmp(current_name, t->name) == 0)
-        {
-            snprintf(lines[i], sizeof(lines[i]), "    \"status\" : \"%s\",\n", status_to_string(s));
+
+        if (reading && strstr(line, "\"status\"") && strcmp(current_name, t->name) == 0) {
+            // Write modified status line
+            int written = snprintf(output + output_len, file_size + 256 - output_len, 
+                                   "    \"status\": \"%s\",\n", status_to_string(s));
+            output_len += written;
+        } else {
+            // Copy original line
+            memcpy(output + output_len, line_start, line_len);
+            output_len += line_len;
+            if (line_end && *line_end == '\n') {
+                output[output_len++] = '\n';
+            }
         }
 
         if (strstr(line, "}"))
             reading = 0;
+
+        if (!line_end || *(line_end + 1) == '\0')
+            break;
+        line_start = line_end + 1;
     }
+    output[output_len] = '\0';
+
+    free(file_content);
 
     fptr = fopen("data/task_data.json", "w");
-    if (!fptr)
+    if (!fptr) {
+        free(output);
         return;
+    }
 
-    for (int i = 0; i < count; i++)
-        fputs(lines[i], fptr);
-
+    fputs(output, fptr);
     fclose(fptr);
+    free(output);
 }

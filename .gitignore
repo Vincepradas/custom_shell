@@ -3,3 +3,4 @@ refresh_token.json
 .env
 data
 main
+build/
