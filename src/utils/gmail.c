@@ -3,11 +3,33 @@
 #include <string.h>
 #include <cjson/cJSON.h>
 
+#define GMAIL_BUFFER_SIZE 16384
+
+typedef struct {
+    char *buffer;
+    size_t len;
+    size_t max_size;
+} GmailWriteBuffer;
+
+static size_t write_callback_gmail_internal(void *contents, size_t size, size_t nmemb, void *userp) {
+    size_t realsize = size * nmemb;
+    GmailWriteBuffer *wb = (GmailWriteBuffer *)userp;
+    
+    if (wb->len + realsize >= wb->max_size) {
+        realsize = wb->max_size - 1 - wb->len;
+    }
+    
+    memcpy(wb->buffer + wb->len, contents, realsize);
+    wb->len += realsize;
+    wb->buffer[wb->len] = '\0';
+    return realsize;
+}
+
 size_t write_callback_gmail(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
     char *buf = (char *)userp;
     size_t len = strlen(buf);
-    if (len + realsize >= 16384) realsize = 16383 - len;
+    if (len + realsize >= GMAIL_BUFFER_SIZE) realsize = GMAIL_BUFFER_SIZE - 1 - len;
     memcpy(buf + len, contents, realsize);
     buf[len + realsize] = '\0';
     return realsize;
@@ -18,17 +40,18 @@ void fetch_todays_emails(const char *access_token) {
     CURL *curl = curl_easy_init();
     if (!curl) return;
 
-    char buffer[16384] = {0};
+    char buffer[GMAIL_BUFFER_SIZE] = {0};
+    GmailWriteBuffer wb = {buffer, 0, GMAIL_BUFFER_SIZE};
     struct curl_slist *headers = NULL;
     char auth_header[512];
-    sprintf(auth_header, "Authorization: Bearer %s", access_token);
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", access_token);
     headers = curl_slist_append(headers, auth_header);
 
     curl_easy_setopt(curl, CURLOPT_URL,
         "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=newer_than:1d");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_gmail);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_gmail_internal);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &wb);
 
     curl_easy_perform(curl);
     curl_easy_cleanup(curl);
@@ -52,12 +75,13 @@ void fetch_todays_emails(const char *access_token) {
 
         CURL *mcurl = curl_easy_init();
         char msgbuf[8192] = {0};
+        GmailWriteBuffer msg_wb = {msgbuf, 0, 8192};
         struct curl_slist *mheaders = NULL;
         mheaders = curl_slist_append(mheaders, auth_header);
         curl_easy_setopt(mcurl, CURLOPT_URL, url);
         curl_easy_setopt(mcurl, CURLOPT_HTTPHEADER, mheaders);
-        curl_easy_setopt(mcurl, CURLOPT_WRITEFUNCTION, write_callback_gmail);
-        curl_easy_setopt(mcurl, CURLOPT_WRITEDATA, msgbuf);
+        curl_easy_setopt(mcurl, CURLOPT_WRITEFUNCTION, write_callback_gmail_internal);
+        curl_easy_setopt(mcurl, CURLOPT_WRITEDATA, &msg_wb);
         curl_easy_perform(mcurl);
         curl_easy_cleanup(mcurl);
         curl_slist_free_all(mheaders);
