@@ -66,14 +66,11 @@ void load_tasks()
             trim(t.name);
             if (task_count < MAX_TASKS)
                 tasks[task_count++] = t;
-            // Track max ID for NEXT_ID calculation
             if (t.id > max_id)
                 max_id = t.id;
         }
     }
     fclose(fptr);
-    
-    // Set NEXT_ID based on loaded tasks
     NEXT_ID = max_id + 1;
 }
 
@@ -96,9 +93,6 @@ void trim(char *s)
 
 void init_next_id()
 {
-    // NEXT_ID is now set by load_tasks(), so this function simply
-    // uses the already-loaded tasks array to find max ID if needed.
-    // This avoids redundant file I/O.
     if (task_count == 0) {
         NEXT_ID = 1;
         return;
@@ -114,8 +108,6 @@ void init_next_id()
 
 int task_name_exists(const char *name)
 {
-    // Use the already-loaded tasks array instead of re-reading the file.
-    // This avoids redundant file I/O.
     for (int i = 0; i < task_count; i++) {
         if (strcmp(tasks[i].name, name) == 0) {
             return 1;
@@ -198,8 +190,6 @@ Task create_task(const char *name, const char *desc)
 
 Task get_task_by_name(const char *queryName)
 {
-    // Use the already-loaded tasks array instead of re-reading the file.
-    // This avoids redundant file I/O.
     char tmpName[MAX_NAME];
     strncpy(tmpName, queryName, MAX_NAME - 1);
     tmpName[MAX_NAME - 1] = '\0';
@@ -216,8 +206,6 @@ Task get_task_by_name(const char *queryName)
 
 void list_all_tasks()
 {
-    // Use the already-loaded tasks array instead of re-reading the file.
-    // This avoids redundant file I/O.
     if (task_count == 0)
     {
         printf(YELLOW "No tasks saved yet.\n" RESET);
@@ -269,7 +257,6 @@ int delete_task(const char *name)
         return 0;
     }
 
-    // Confirm deletion
     char confirm[8];
     printf(YELLOW "Are you sure you want to delete task '%s'? (yes/no): " RESET, name);
     if (!fgets(confirm, sizeof(confirm), stdin)) return 0;
@@ -279,13 +266,11 @@ int delete_task(const char *name)
         return 0;
     }
 
-    // Shift tasks to overwrite deleted task
     for (int i = index; i < task_count - 1; i++) {
         tasks[i] = tasks[i + 1];
     }
     task_count--;
 
-    // Rewrite the JSON file
     FILE *fptr = fopen("data/task_data.json", "w");
     if (!fptr) {
         printf(RED "Failed to update task_data.json.\n" RESET);
@@ -370,7 +355,6 @@ void mark_task(Task *t, Status s)
     if (!fptr)
         return;
 
-    // Get file size to allocate appropriate buffer
     fseek(fptr, 0, SEEK_END);
     long file_size = ftell(fptr);
     fseek(fptr, 0, SEEK_SET);
@@ -380,13 +364,11 @@ void mark_task(Task *t, Status s)
         return;
     }
 
-    // Handle empty file case
     if (file_size == 0) {
         fclose(fptr);
         return;
     }
 
-    // Allocate buffer for entire file content
     char *file_content = (char *)malloc(file_size + 1);
     if (!file_content) {
         fclose(fptr);
@@ -397,8 +379,7 @@ void mark_task(Task *t, Status s)
     fclose(fptr);
     file_content[bytes_read] = '\0';
 
-    // Create output buffer (same size is sufficient)
-    char *output = (char *)malloc(file_size + 256); // Extra space for potential longer status
+    char *output = (char *)malloc(file_size + 256); 
     if (!output) {
         free(file_content);
         return;
@@ -419,10 +400,9 @@ void mark_task(Task *t, Status s)
             line_len = strlen(line_start);
             if (line_len == 0)
                 break;
-            line_end = line_start + line_len - 1; // Point to last char
+            line_end = line_start + line_len - 1; 
         }
 
-        // Create temporary null-terminated line for parsing
         char line[512];
         size_t copy_len = line_len < sizeof(line) - 1 ? line_len : sizeof(line) - 1;
         memcpy(line, line_start, copy_len);
@@ -437,12 +417,10 @@ void mark_task(Task *t, Status s)
         }
 
         if (reading && strstr(line, "\"status\"") && strcmp(current_name, t->name) == 0) {
-            // Write modified status line (use same format as other JSON writers)
             int written = snprintf(output + output_len, file_size + 256 - output_len, 
                                    "    \"status\" : \"%s\",\n", status_to_string(s));
             output_len += written;
         } else {
-            // Copy original line
             memcpy(output + output_len, line_start, line_len);
             output_len += line_len;
             if (line_end && *line_end == '\n') {
